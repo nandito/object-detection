@@ -1,3 +1,5 @@
+let front = false;
+
 const video = document.getElementById('webcam');
 const liveView = document.getElementById('liveView');
 const demosSection = document.getElementById('demos');
@@ -30,7 +32,7 @@ function enableCam(event) {
   
   // getUsermedia parameters to force video but not audio.
   const constraints = {
-    video: true
+    video: { facingMode: (front ? "user" : "environment") },
   };
 
   // Activate the webcam stream.
