@@ -1,9 +1,27 @@
 let front = false;
+let videoTrack = null;
+let requestAnimationFrameId = null;
 
 const video = document.getElementById('webcam');
 const liveView = document.getElementById('liveView');
 const demosSection = document.getElementById('demos');
 const enableWebcamButton = document.getElementById('webcamButton');
+
+function debounce(func, wait, immediate) {
+  let timeout;
+  return function () {
+    const context = this
+    const args = arguments;
+    const later = function () {
+      timeout = null;
+      if (!immediate) func.apply(context, args);
+    };
+    const callNow = immediate && !timeout;
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+    if (callNow) func.apply(context, args);
+  };
+};
 
 // Check if webcam access is supported.
 function getUserMediaSupported() {
@@ -32,27 +50,41 @@ function enableCam(event) {
   
   // getUsermedia parameters to force video but not audio.
   const constraints = {
-    video: { facingMode: (front ? "user" : "environment") },
+    audio: false,
+    video: {
+      width: { ideal: window.innerWidth, max: 1920 },
+      height: { max: 1080 },
+      facingMode: (front ? "user" : "environment"),
+    },
   };
 
   // Activate the webcam stream.
   navigator.mediaDevices.getUserMedia(constraints).then(function(stream) {
+    const videoTracks = stream.getVideoTracks();
+
+    if (videoTracks.length) {
+      videoTrack = videoTracks[0];
+    }
+
     video.srcObject = stream;
     video.addEventListener('loadeddata', predictWebcam);
   });
 }
 
-var children = [];
+const children = [];
+function clearHighlights() {
+  for (let i = 0; i < children.length; i++) {
+    liveView.removeChild(children[i]);
+  }
+  children.splice(0);
+}
 
 // Placeholder function for next step.
 function predictWebcam() {
   // Now let's start classifying a frame in the stream.
   model.detect(video).then(function (predictions) {
     // Remove any highlighting we did previous frame.
-    for (let i = 0; i < children.length; i++) {
-      liveView.removeChild(children[i]);
-    }
-    children.splice(0);
+    clearHighlights();
     
     // Now lets loop through predictions and draw them to the live view if
     // they have a high confidence score.
@@ -84,7 +116,7 @@ function predictWebcam() {
     }
     
     // Call this function again to keep predicting when the browser is ready.
-    window.requestAnimationFrame(predictWebcam);
+    requestAnimationFrameId = window.requestAnimationFrame(predictWebcam);
   });
 }
 
@@ -101,3 +133,28 @@ cocoSsd.load().then(function (loadedModel) {
   // Show demo section now model is ready to use.
   demosSection.classList.remove('invisible');
 });
+
+document.getElementById("stopButton").addEventListener("click", function () {
+  if (videoTrack) {
+    videoTrack.stop();
+  }
+
+  clearHighlights();
+  video.removeEventListener('loadeddata', predictWebcam);
+  window.cancelAnimationFrame(requestAnimationFrameId);
+  video.srcObject = null;
+  videoTrack = null;
+  requestAnimationFrameId = null;
+  enableWebcamButton.classList.remove("removed");
+});
+
+const setVideoConstraints = debounce(function() {
+  console.log('resize');
+  if (videoTrack) {
+    videoTrack.applyConstraints({
+      width: window.innerWidth,
+    })
+  }
+}, 500);
+
+window.addEventListener('resize', setVideoConstraints);
