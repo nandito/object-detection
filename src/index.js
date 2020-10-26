@@ -134,6 +134,16 @@ cocoSsd.load().then(function (loadedModel) {
   demosSection.classList.remove('invisible');
 });
 
+document.getElementById("flipButton").addEventListener("click", function() {
+  if (videoTrack) {
+    front = !front;
+
+    videoTrack.applyConstraints({
+      facingMode: (front ? "user" : "environment"),
+    });
+  }
+});
+
 document.getElementById("stopButton").addEventListener("click", function () {
   if (videoTrack) {
     videoTrack.stop();
