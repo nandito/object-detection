@@ -1,3 +1,5 @@
+import throttle from 'lodash/throttle';
+
 let front = false;
 let videoTrack = null;
 let requestAnimationFrameId = null;
@@ -31,12 +33,42 @@ function clearHighlights() {
   children.splice(0);
 }
 
+const cache = [];
+const persisted = [];
+
+const persistPredictions = throttle(() => {
+  const newPredictions = cache.filter((cp) => !persisted.some((pp) => pp.class === cp.class));
+  const removedPredictions = persisted.filter((cp) => !cache.some((pp) => pp.class === cp.class));
+
+  for (let i = 0; i < newPredictions.length; i += 1) {
+    persisted.push(newPredictions[i]);
+  }
+  for (let i = 0; i < removedPredictions.length; i += 1) {
+    for (let j = 0; j < persisted.length; j += 1) {
+      if (persisted[j].class === removedPredictions[i].class) {
+        persisted[j].out = Date();
+      }
+    }
+  }
+
+  console.log({cache, persisted});
+
+  cache.splice(0);
+}, 5000);
+
+function cachePrediction(prediction) {
+  if (!cache.some((p) => p.class === prediction.class)) {
+    cache.push({ ...prediction, in: Date() });
+  }
+}
+
 // Placeholder function for next step.
 function predictWebcam() {
   // Now let's start classifying a frame in the stream.
   model.detect(video).then((predictions) => {
     // Remove any highlighting we did previous frame.
     clearHighlights();
+    persistPredictions();
 
     // Now lets loop through predictions and draw them to the live view if
     // they have a high confidence score.
@@ -44,6 +76,7 @@ function predictWebcam() {
       // If we are over 66% sure we are sure we classified it right, draw it!
       if (predictions[n].score > 0.66) {
         // console.log(predictions[n].class, Math.round(parseFloat(predictions[n].score) * 100));
+        cachePrediction(predictions[n]);
 
         const p = document.createElement('p');
         p.innerText = `${predictions[n].class} - with ${
