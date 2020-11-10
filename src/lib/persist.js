@@ -2,6 +2,7 @@ const TIME_FRAME = 60; // 1 min
 
 const diffSecs = (date1, date2) => (date1 - date2) / 1000;
 
+// TODO: out date updates || reappearing item that was persisted before gets persisted continuously
 function persist(cache, persisted, now = new Date()) {
   const newPredictions = cache.filter((cp) => !persisted.some((pp) => pp.class === cp.class)
     || persisted.some((pp) => pp.class === cp.class && diffSecs(new Date(), pp?.out) > TIME_FRAME));
