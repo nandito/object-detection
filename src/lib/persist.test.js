@@ -65,6 +65,16 @@ const cases = [
     ],
     date: now,
   },
+  {
+    name: 'empty cache, has 2 persisted',
+    cache: [],
+    persisted: [{ ...person, out: yesterday }, { ...dog, out: someSecAgo }],
+    output: [
+      { ...person, out: yesterday },
+      { ...dog, out: someSecAgo },
+    ],
+    date: now,
+  },
 ];
 
 function macro(t, cache, persisted, date, expected) {

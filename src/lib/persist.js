@@ -9,8 +9,9 @@ function persist(cache, persisted, now = new Date()) {
 
   return [...persisted, ...newPredictions].reduce((acc, curr) => [
     ...acc,
+    // eslint-disable-next-line no-nested-ternary
     removedPredictions.some((rp) => rp.class === curr.class)
-      ? { ...curr, out: now }
+      ? curr.out ? curr : { ...curr, out: now }
       : curr,
   ], []);
 }
